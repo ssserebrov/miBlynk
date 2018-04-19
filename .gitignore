@@ -1,0 +1,8 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/miGateway/node_modules
+/miGateway/obj/Debug
+/miGateway/bin
+/.vs/miGateway/v15
