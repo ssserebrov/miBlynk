@@ -10,6 +10,7 @@
     "@types/node": "^6.0.87"
   },
   "dependencies": {
-    "blynk-library": "^0.5.1"
+    "blynk-library": "^0.5.1",
+    "miio": "^0.15.6"
   }
 }
