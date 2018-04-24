@@ -6,3 +6,5 @@
 /miGateway/obj/Debug
 /miGateway/bin
 /.vs/miGateway/v15
+/miGateway/obj/Release/miGateway.njsproj.CoreCompileInputs.cache
+/.vs

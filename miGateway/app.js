@@ -15,7 +15,10 @@ let button;
 let sensorHT;
 // Blynk stuff
 let blynk;
-let v20;
+let plugPin;
+let plugLed;
+let tempPin;
+let humPin;
 let testPin;
 const initGateway = () => __awaiter(this, void 0, void 0, function* () {
     gateway = yield miio.device({ address: '192.168.1.70' });
@@ -49,9 +52,15 @@ const plugTurn = (on) => __awaiter(this, void 0, void 0, function* () {
         plug.turnOff();
     }
 });
+const plugToggle = () => __awaiter(this, void 0, void 0, function* () {
+    plug.togglePower();
+});
 const initBlynk = () => __awaiter(this, void 0, void 0, function* () {
-    blynk = yield new BlynkLib.Blynk('7bb7485f6eba41a0a36de66a90ed8ea');
-    v20 = yield new blynk.VirtualPin(20);
+    blynk = yield new BlynkLib.Blynk('7bb7485f6eba41a0a36de66a90ed8ea1');
+    tempPin = yield new blynk.VirtualPin(15);
+    humPin = yield new blynk.VirtualPin(16);
+    plugPin = yield new blynk.VirtualPin(20);
+    plugLed = yield new blynk.VirtualPin(21);
     testPin = yield new blynk.VirtualPin(17);
 });
 const testBlynk = () => __awaiter(this, void 0, void 0, function* () {
@@ -60,26 +69,55 @@ const testBlynk = () => __awaiter(this, void 0, void 0, function* () {
 });
 const initEvents = () => __awaiter(this, void 0, void 0, function* () {
     console.log("->initEvents");
-    v20.on('write', function (param) {
+    plugPin.on('write', function (param) {
         console.log('V20:', param);
-        if (param == 0)
-            plugTurn(false);
         if (param == 1)
-            plugTurn(true);
+            plugToggle();
     });
-    v20.on('read', function () {
-        v20.write(new Date().getSeconds());
-    });
+    //plugPin.on('write', function (param) {
+    //    console.log('V20:', param);
+    //    if (param == 0)
+    //        plugTurn(false);
+    //    if (param == 1)
+    //        plugTurn(true);
+    //});
+    //    v20.on('read', function () {
+    //        v20.write(new Date().getSeconds());
+    //    });
     blynk.on('connect', function () {
         console.log("Blynk ready.");
         testBlynk();
     });
+    plug.on('stateChanged', (change, thing) => {
+        if (change.key == "power") {
+            console.log(thing, 'changed state:', change);
+            if (!change.value) {
+                blynk.notify("Plug OFF");
+                console.log("Plug OFF");
+                plugLed.write(0);
+                //plugPin.write(0);
+            }
+            else {
+                blynk.notify("Plug ON");
+                console.log("Plug ON");
+                plugLed.write(255);
+                //plugPin.write(1);
+            }
+        }
+    });
     console.log("initEvents->");
     // button.on('action:click', event => console.log('Action', event.action, 'with data', event.data));
-    // sensorHT.on('temperatureChanged', temp => console.log('Temp changed to:', temp));
+    sensorHT.on('temperatureChanged', temp => {
+        console.log('Temp changed to:', temp.value);
+        tempPin.write(temp.value);
+    });
+    sensorHT.on('relativeHumidityChanged', v => {
+        console.log('Changed to:', v);
+        humPin.write(v);
+    });
 });
 const run = () => __awaiter(this, void 0, void 0, function* () {
-    //await initGateway();
+    yield initGateway();
     yield initBlynk();
     //await testBlynk();
     yield initEvents();
