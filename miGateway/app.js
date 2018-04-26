@@ -40,6 +40,7 @@ const initGateway = () => __awaiter(this, void 0, void 0, function* () {
         }
         //plug = gateway.child(child.id);
     }
+    console.log("Gateway ready!");
     //console.log(plug);
 });
 const plugTurn = (on) => __awaiter(this, void 0, void 0, function* () {
@@ -85,8 +86,8 @@ const initEvents = () => __awaiter(this, void 0, void 0, function* () {
     //        v20.write(new Date().getSeconds());
     //    });
     blynk.on('connect', function () {
-        console.log("Blynk ready.");
-        testBlynk();
+        console.log("Blynk ready!");
+        // testBlynk();
     });
     plug.on('stateChanged', (change, thing) => {
         if (change.key == "power") {
@@ -104,6 +105,9 @@ const initEvents = () => __awaiter(this, void 0, void 0, function* () {
                 //plugPin.write(1);
             }
         }
+    });
+    blynk.on('error', (err) => {
+        console.error('whoops! there was an error');
     });
     console.log("initEvents->");
     // button.on('action:click', event => console.log('Action', event.action, 'with data', event.data));

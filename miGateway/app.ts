@@ -39,6 +39,8 @@ const initGateway = async () => {
         }
         //plug = gateway.child(child.id);
     }
+    console.log("Gateway ready!");
+
     //console.log(plug);
 }
 
@@ -96,8 +98,8 @@ const initEvents = async () => {
     //    });
 
     blynk.on('connect', function () {
-        console.log("Blynk ready.");
-        testBlynk();
+        console.log("Blynk ready!");
+       // testBlynk();
     });
 
     plug.on('stateChanged', (change, thing) => {
@@ -118,6 +120,10 @@ const initEvents = async () => {
 
         }
 
+    });
+
+    blynk.on('error', (err) => {
+        console.error('whoops! there was an error');
     });
 
     console.log("initEvents->");
