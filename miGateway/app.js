@@ -13,6 +13,7 @@ let gateway;
 let plug;
 let button;
 let sensorHT;
+let magnet;
 // Blynk stuff
 let blynk;
 let plugPin;
@@ -70,18 +71,18 @@ const testBlynk = () => __awaiter(this, void 0, void 0, function* () {
 });
 const initEvents = () => __awaiter(this, void 0, void 0, function* () {
     console.log("->initEvents");
-    plugPin.on('write', function (param) {
-        console.log('V20:', param);
-        if (param == 1)
-            plugToggle();
-    });
     //plugPin.on('write', function (param) {
     //    console.log('V20:', param);
-    //    if (param == 0)
-    //        plugTurn(false);
     //    if (param == 1)
-    //        plugTurn(true);
+    //        plugToggle();
     //});
+    plugPin.on('write', function (param) {
+        console.log('V20:', param);
+        if (param == 0)
+            plugTurn(false);
+        if (param == 1)
+            plugTurn(true);
+    });
     //    v20.on('read', function () {
     //        v20.write(new Date().getSeconds());
     //    });

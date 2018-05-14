@@ -6,15 +6,14 @@ let gateway: any;
 let plug: any;
 let button: any;
 let sensorHT: any;
+let magnet: any;
 
 // Blynk stuff
 let blynk: any;
 let plugPin: any;
 let plugLed: any;
-
 let tempPin: any;
 let humPin: any;
-
 let testPin: any;
 
 const initGateway = async () => {
@@ -76,22 +75,24 @@ const testBlynk = async () => {
 
 const initEvents = async () => {
     console.log("->initEvents");
-    plugPin.on('write', function (param) {
-        console.log('V20:', param);
-
-        if (param == 1)
-            plugToggle();
-    });
-
 
 
     //plugPin.on('write', function (param) {
     //    console.log('V20:', param);
-    //    if (param == 0)
-    //        plugTurn(false);
+
     //    if (param == 1)
-    //        plugTurn(true);
+    //        plugToggle();
     //});
+
+
+
+    plugPin.on('write', function (param) {
+        console.log('V20:', param);
+        if (param == 0)
+            plugTurn(false);
+        if (param == 1)
+            plugTurn(true);
+    });
 
     //    v20.on('read', function () {
     //        v20.write(new Date().getSeconds());
