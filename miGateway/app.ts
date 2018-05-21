@@ -174,4 +174,5 @@ const run = async () => {
 
 run().catch(err => {
     console.log(err);
+    console.log("CATCH!");
 })
