@@ -15,6 +15,7 @@ let plugLed: any;
 let tempPin: any;
 let humPin: any;
 let testPin: any;
+let magnetPin: any;
 
 const initGateway = async () => {
     gateway = await miio.device({ address: '192.168.1.70' })
@@ -23,6 +24,7 @@ const initGateway = async () => {
     plug = gateway.child('miio:158d00020f23d5');
     button = gateway.child('miio:158d00020fecb9');
     sensorHT = gateway.child('miio:158d0001c2a921');
+    //magnet = gateway.child('miio:158d0001c2a921');
 
     console.log(plug);
     for (const child of gateway.children()) {
@@ -111,6 +113,25 @@ const initEvents = async () => {
                 console.log("Plug OFF");
                 plugLed.write(0);
                 //plugPin.write(0);
+            }
+            else {
+                blynk.notify("Plug ON");
+                console.log("Plug ON");
+                plugLed.write(255);
+                //plugPin.write(1);
+            }
+
+        }
+
+    });
+
+    magnet.on('stateChanged', (change, thing) => {
+        if (change.key == "power") {
+            console.log(thing, 'changed state:', change);
+            if (!change.value) {
+                blynk.notify("Plug OFF");
+                console.log("Plug OFF");
+                plugPin.write(0);
             }
             else {
                 blynk.notify("Plug ON");
