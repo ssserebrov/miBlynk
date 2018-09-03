@@ -8,6 +8,61 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 const BlynkLib = require('blynk-library');
 const miio = require('miio');
+//class Rig extends events.EventEmitter {
+//    name: string;
+//    ip: string;
+//    port: number;
+//    tempLimit: number = 78;
+//    private _stat: Stat;
+//    private _temp: number;
+//    get temp(): number {
+//        return this._temp;
+//    }
+//    set temp(temp: number) {
+//        this._temp = temp;
+//        this.isCriticalTemp = (!this.isCriticalTemp && this._temp >= this.tempLimit) ||
+//            (this.isCriticalTemp && this._temp >= this.tempLimit - 8);
+//    }
+//    private _isCriticalTemp: boolean = false;
+//    get isCriticalTemp(): boolean {
+//        return this._isCriticalTemp;
+//    }
+//    set isCriticalTemp(isCriticalTemp: boolean) {
+//        if (isCriticalTemp == this._isCriticalTemp) {
+//            return;
+//        }
+//        this._isCriticalTemp = isCriticalTemp;
+//        this.emit('criticalTempStatusChanged')
+//    }
+//    private _isOnline: boolean = true;
+//    get isOnline(): boolean {
+//        return this._isOnline;
+//    }
+//    set isOnline(isOnline: boolean) {
+//        if (isOnline == this._isOnline) {
+//            return;
+//        }
+//        this._isOnline = isOnline;
+//        this.emit('onlineStatusChanged')
+//    }
+//    updateRigStatus(stat: Stat) {
+//        this._stat = stat;
+//        this.temp = Math.max.apply(null, stat.temps);
+//    }
+//    toString() {
+//        console.log(this.name);
+//        console.log(this._stat.hashRate);
+//        console.log(this._stat.temps);
+//        let msg: string = this.name + ": " + this._temp + ";";
+//        return msg;
+//    }
+//    constructor(name: string, ip: string, port: number) {
+//        super();
+//        this.name = name;
+//        this.ip = ip;
+//        this.port = port;
+//    }
+//}
 // Gateway stuff
 let gateway;
 let plug;
@@ -26,7 +81,6 @@ let humPin;
 let testPin;
 let magnetPin;
 let terminal1;
-let terminal1Pin;
 const initGateway = () => __awaiter(this, void 0, void 0, function* () {
     gateway = yield miio.device({ address: '192.168.1.70' });
     console.log(gateway);
@@ -50,20 +104,6 @@ const initGateway = () => __awaiter(this, void 0, void 0, function* () {
         //plug = gateway.child(child.id);
     }
     console.log("Gateway ready!");
-    //console.log(plug);
-});
-const plugTurn = (on) => __awaiter(this, void 0, void 0, function* () {
-    if (on) {
-        console.log("plug.turnOn();");
-        plug.turnOn();
-    }
-    else {
-        console.log("plug.turnOff();");
-        plug.turnOff();
-    }
-});
-const plugToggle = () => __awaiter(this, void 0, void 0, function* () {
-    plug.togglePower();
 });
 const initBlynk = () => __awaiter(this, void 0, void 0, function* () {
     blynk = yield new BlynkLib.Blynk('7bb7485f6eba41a0a36de66a90ed8ea1');
@@ -72,99 +112,74 @@ const initBlynk = () => __awaiter(this, void 0, void 0, function* () {
     plugPin = yield new blynk.VirtualPin(20);
     plugLed = yield new blynk.VirtualPin(21);
     testPin = yield new blynk.VirtualPin(17);
-    //terminal1Pin = await new blynk.VirtualPin(10);
     terminal1 = yield new blynk.WidgetTerminal(10);
-    //blynk.setProperty(plugPin, "onLabel", "wait2");
-    //blynk.setProperty(plugPin, "onLabel", "wait2");
-    //blynk.setProperty(plugPin, "offLabel", "wait2");
-    //blynk.setProperty(plugPin, "offLabel", "wait2");
-    //blynk.setProperty(plugPin, "label", "wait2");
-    //blynk.syncAll();
+    blynk.on('connect', function () {
+        console.log("Blynk ready!");
+    });
+    blynk.on('error', (err) => {
+        console.error('whoops! there was an error');
+    });
 });
 const testBlynk = () => __awaiter(this, void 0, void 0, function* () {
     console.log("testBlynk");
     testPin.write(1);
 });
-const initEvents = () => __awaiter(this, void 0, void 0, function* () {
-    console.log("->initEvents");
-    //plugPin.on('write', function (param) {
-    //    console.log('V20:', param);
-    //    if (param == 1)
-    //        plugToggle();
-    //});
-    plugPin.on('write', function (param) {
-        console.log('V20:', param);
-        if (param == 0)
-            plugTurn(false);
-        if (param == 1)
-            plugTurn(true);
-    });
-    //    v20.on('read', function () {
-    //        v20.write(new Date().getSeconds());
-    //    });
-    blynk.on('connect', function () {
-        console.log("Blynk ready!");
-        // testBlynk();
-    });
-    plug.on('stateChanged', (change, thing) => {
+function connectRelayWithBlynkButton(relay, blynkButton) {
+    relay.on('stateChanged', (change, thing) => {
+        let onLabel = "ON";
+        let offLabel = "OFF";
+        let waitLabel = "...";
         if (change.key == "power") {
-            console.log(thing, 'changed state:', change);
             if (!change.value) {
-                blynk.setProperty(20, "onLabel", "wait");
-                blynk.setProperty(20, "offLabel", "OFF");
-                //blynk.notify("Plug OFF");
-                terminal1.write("Plug: OFF\n");
-                console.log("Plug: OFF");
-                //plugLed.write(0);
-                //plugPin.write(0);
+                blynk.setProperty(blynkButton.pin, "onLabel", waitLabel);
+                blynk.setProperty(blynkButton.pin, "offLabel", offLabel);
+                blynkButton.write(0);
             }
             else {
-                blynk.setProperty(20, "onLabel", "ON");
-                blynk.setProperty(20, "offLabel", "wait");
-                //blynk.setProperty(plugPin, "offLabel", "wait2");
-                //blynk.setProperty(plugPin, "label", "wait2");
-                //  blynk.syncVirtual(plugPin);
-                //blynk.notify("Plug ON");
-                terminal1.write("Plug: ON\n");
-                console.log("Plug: ON");
-                //plugLed.write(255);
-                //plugPin.write(1);
+                blynk.setProperty(blynkButton.pin, "onLabel", onLabel);
+                blynk.setProperty(blynkButton.pin, "offLabel", waitLabel);
+                blynkButton.write(1);
             }
         }
     });
+    blynkButton.on('write', function (param) {
+        if (param == 0)
+            relay.turnOff();
+        if (param == 1)
+            relay.turnOn();
+    });
+}
+function connectMagnetWithBlynk(magnet) {
     magnet.on('stateChanged', (change, thing) => {
         if (change.key == "contact") {
             console.log(thing, 'changed state:', change);
             if (!change.value) {
-                blynk.notify("Door open");
-                console.log("Plug OFF");
-                //plugLed.write(0);
-                //plugPin.write(0);
+                blynk.notify("Door open!");
+                terminal1.write("Door open!\n");
             }
-            //else {
-            //    blynk.notify("Door open");
-            //    console.log("Plug ON");
-            //    plugLed.write(255);
-            //    //plugPin.write(1);
-            //}
         }
     });
-    blynk.on('error', (err) => {
-        console.error('whoops! there was an error');
-    });
-    console.log("initEvents->");
-    button.on('action', action => console.log('Action occurred:', action));
-    //button.on('action:click', event => console.log('Action', event.action, 'with data', event.data));
-    sensorHT.on('temperatureChanged', temp => {
+}
+function connectTempHumSensorWithBlynk(sensor, blynkTemp, blynkHum) {
+    sensor.on('temperatureChanged', temp => {
         console.log('Temp changed to:', temp.value);
-        tempPin.write(temp.value);
+        blynkTemp.write(temp.value);
     });
-    sensorHT.on('relativeHumidityChanged', v => {
+    sensor.on('relativeHumidityChanged', v => {
         console.log('Changed to:', v);
-        humPin.write(v);
+        blynkHum.write(v);
     });
-    //  wallButton1 = wallButtons.getChild('1'); 
-    //  wallButton2 = wallButtons.getChild('2'); 
+}
+const initEvents = () => __awaiter(this, void 0, void 0, function* () {
+    console.log("->initEvents");
+    connectRelayWithBlynkButton(plug, plugPin);
+    connectMagnetWithBlynk(magnet);
+    connectTempHumSensorWithBlynk(sensorHT, tempPin, humPin);
+});
+const initDebugEvents = () => __awaiter(this, void 0, void 0, function* () {
+    button.on('action', action => console.log('Action occurred:', action));
+    //  wallButton1 = wallButtons.getChild('1');
+    //  wallButton2 = wallButtons.getChild('2');
     //wallButton1.on('action', action =>
     //    console.log('Action occurred:', action)
     //);
@@ -174,8 +189,8 @@ const run = () => __awaiter(this, void 0, void 0, function* () {
     yield initBlynk();
     //await testBlynk();
     yield initEvents();
+    yield initDebugEvents();
     console.log("run->");
-    //await plugTurnOn();
 });
 run().catch(err => {
     console.log(err);
