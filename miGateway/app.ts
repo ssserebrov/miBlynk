@@ -7,6 +7,9 @@ let plug: any;
 let button: any;
 let sensorHT: any;
 let magnet: any;
+let wallButtons: any;
+let wallButton1: any;
+let wallButton2: any;
 
 // Blynk stuff
 let blynk: any;
@@ -16,6 +19,8 @@ let tempPin: any;
 let humPin: any;
 let testPin: any;
 let magnetPin: any;
+let terminal1: any;
+let terminal1Pin: any;
 
 const initGateway = async () => {
     gateway = await miio.device({ address: '192.168.1.70' })
@@ -24,7 +29,8 @@ const initGateway = async () => {
     plug = gateway.child('miio:158d00020f23d5');
     button = gateway.child('miio:158d00020fecb9');
     sensorHT = gateway.child('miio:158d0001c2a921');
-    //magnet = gateway.child('miio:158d0001c2a921');
+    magnet = gateway.child('miio:158d00022712f9');
+    wallButtons = gateway.child('miio:158d0002458fc6');
 
     console.log(plug);
     for (const child of gateway.children()) {
@@ -67,6 +73,14 @@ const initBlynk = async () => {
     plugPin = await new blynk.VirtualPin(20);
     plugLed = await new blynk.VirtualPin(21);
     testPin = await new blynk.VirtualPin(17);
+    //terminal1Pin = await new blynk.VirtualPin(10);
+    terminal1 = await new blynk.WidgetTerminal(10);
+    //blynk.setProperty(plugPin, "onLabel", "wait2");
+    //blynk.setProperty(plugPin, "onLabel", "wait2");
+    //blynk.setProperty(plugPin, "offLabel", "wait2");
+    //blynk.setProperty(plugPin, "offLabel", "wait2");
+    //blynk.setProperty(plugPin, "label", "wait2");
+    //blynk.syncAll();
 }
 
 const testBlynk = async () => {
@@ -109,15 +123,25 @@ const initEvents = async () => {
         if (change.key == "power") {
             console.log(thing, 'changed state:', change);
             if (!change.value) {
-                blynk.notify("Plug OFF");
-                console.log("Plug OFF");
-                plugLed.write(0);
+                blynk.setProperty(20, "onLabel", "wait");
+                blynk.setProperty(20, "offLabel", "OFF");
+                //blynk.notify("Plug OFF");
+                terminal1.write("Plug: OFF\n");
+                console.log("Plug: OFF");
+                //plugLed.write(0);
                 //plugPin.write(0);
             }
             else {
-                blynk.notify("Plug ON");
-                console.log("Plug ON");
-                plugLed.write(255);
+                blynk.setProperty(20, "onLabel", "ON");
+                blynk.setProperty(20, "offLabel", "wait");
+                //blynk.setProperty(plugPin, "offLabel", "wait2");
+                //blynk.setProperty(plugPin, "label", "wait2");
+              //  blynk.syncVirtual(plugPin);
+                //blynk.notify("Plug ON");
+                terminal1.write("Plug: ON\n");
+
+                console.log("Plug: ON");
+                //plugLed.write(255);
                 //plugPin.write(1);
             }
 
@@ -126,23 +150,22 @@ const initEvents = async () => {
     });
 
     magnet.on('stateChanged', (change, thing) => {
-        if (change.key == "power") {
+        if (change.key == "contact") {
             console.log(thing, 'changed state:', change);
             if (!change.value) {
-                blynk.notify("Plug OFF");
+                blynk.notify("Door open");
                 console.log("Plug OFF");
-                plugPin.write(0);
+                //plugLed.write(0);
+                //plugPin.write(0);
             }
-            else {
-                blynk.notify("Plug ON");
-                console.log("Plug ON");
-                plugLed.write(255);
-                //plugPin.write(1);
-            }
+            //else {
+            //    blynk.notify("Door open");
+            //    console.log("Plug ON");
+            //    plugLed.write(255);
+            //    //plugPin.write(1);
+            //}
 
-        }
-
-    });
+        }    });
 
     blynk.on('error', (err) => {
         console.error('whoops! there was an error');
@@ -150,8 +173,11 @@ const initEvents = async () => {
 
     console.log("initEvents->");
 
+    button.on('action', action =>
+        console.log('Action occurred:', action)
+    );
 
-    // button.on('action:click', event => console.log('Action', event.action, 'with data', event.data));
+    //button.on('action:click', event => console.log('Action', event.action, 'with data', event.data));
     sensorHT.on('temperatureChanged', temp => {
         console.log('Temp changed to:', temp.value);
         tempPin.write(temp.value);
@@ -160,6 +186,19 @@ const initEvents = async () => {
         console.log('Changed to:', v);
         humPin.write(v);
     });
+
+
+
+
+
+
+
+  //  wallButton1 = wallButtons.getChild('1'); 
+  //  wallButton2 = wallButtons.getChild('2'); 
+
+    //wallButton1.on('action', action =>
+    //    console.log('Action occurred:', action)
+    //);
 }
 
 const run = async () => {
