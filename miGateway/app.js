@@ -72,6 +72,8 @@ let magnet;
 let wallButtons;
 let wallButton1;
 let wallButton2;
+let smokeSensor;
+let leakageSensor;
 // Blynk stuff
 let blynk;
 let plugPin;
@@ -89,6 +91,8 @@ const initGateway = () => __awaiter(this, void 0, void 0, function* () {
     sensorHT = gateway.child('miio:158d0001c2a921');
     magnet = gateway.child('miio:158d00022712f9');
     wallButtons = gateway.child('miio:158d0002458fc6');
+    //smokeSensor = gateway.child('miio:158d0002458fc6');
+    //leakageSensor = gateway.child('miio:158d0002458fc6');
     console.log(plug);
     for (const child of gateway.children()) {
         console.log(child.id);
@@ -101,7 +105,14 @@ const initGateway = () => __awaiter(this, void 0, void 0, function* () {
             const temperature = yield child.temperature();
             console.log('Temperature:', temperature.celsius);
         }
-        //plug = gateway.child(child.id);
+        //if (child.matches('cap:children')) {
+        //    for (const grandchild of child.children) {
+        //        console.log('grandchild:', grandchild);
+        //    }
+        //}
+        if (child.matches('cap:battery-level')) {
+            console.log('Current battery level:', yield child.batteryLevel());
+        }
     }
     console.log("Gateway ready!");
 });
@@ -160,6 +171,28 @@ function connectMagnetWithBlynk(magnet) {
         }
     });
 }
+function connectSmokeSensorWithBlynk(smokeSensor) {
+    smokeSensor.on('stateChanged', (change, thing) => {
+        if (change.key == "contact") {
+            console.log(thing, 'changed state:', change);
+            if (!change.value) {
+                blynk.notify("Fire!");
+                terminal1.write("Fire!\n");
+            }
+        }
+    });
+}
+function connectLeakageSensorWithBlynk(leakageSensor) {
+    leakageSensor.on('stateChanged', (change, thing) => {
+        if (change.key == "contact") {
+            console.log(thing, 'changed state:', change);
+            if (!change.value) {
+                blynk.notify("Leakage!");
+                terminal1.write("Leakage!\n");
+            }
+        }
+    });
+}
 function connectTempHumSensorWithBlynk(sensor, blynkTemp, blynkHum) {
     sensor.on('temperatureChanged', temp => {
         console.log('Temp changed to:', temp.value);
@@ -175,6 +208,8 @@ const initEvents = () => __awaiter(this, void 0, void 0, function* () {
     connectRelayWithBlynkButton(plug, plugPin);
     connectMagnetWithBlynk(magnet);
     connectTempHumSensorWithBlynk(sensorHT, tempPin, humPin);
+    //connectSmokeSensorWithBlynk(smokeSensor);
+    //connectLeakageSensorWithBlynk(leakageSensor);
 });
 const initDebugEvents = () => __awaiter(this, void 0, void 0, function* () {
     button.on('action', action => console.log('Action occurred:', action));
