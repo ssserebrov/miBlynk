@@ -79,6 +79,8 @@ let magnet: any;
 let wallButtons: any;
 let wallButton1: any;
 let wallButton2: any;
+let smokeSensor: any;
+let leakageSensor: any;
 
 // Blynk stuff
 let blynk: any;
@@ -99,6 +101,8 @@ const initGateway = async () => {
     sensorHT = gateway.child('miio:158d0001c2a921');
     magnet = gateway.child('miio:158d00022712f9');
     wallButtons = gateway.child('miio:158d0002458fc6');
+    //smokeSensor = gateway.child('miio:158d0002458fc6');
+    //leakageSensor = gateway.child('miio:158d0002458fc6');
 
     console.log(plug);
     for (const child of gateway.children()) {
@@ -112,7 +116,11 @@ const initGateway = async () => {
             const temperature = await child.temperature();
             console.log('Temperature:', temperature.celsius);
         }
-        //plug = gateway.child(child.id);
+        if (child.matches('cap:children')) {
+            for (const grandchild of child.children) {
+                console.log('grandchild:', grandchild);
+            }
+        }
     }
     console.log("Gateway ready!");
 }
@@ -181,7 +189,28 @@ function connectMagnetWithBlynk(magnet: any) {
         }
     });
 }
-
+function connectSmokeSensorWithBlynk(smokeSensor: any) {
+    smokeSensor.on('stateChanged', (change, thing) => {
+        if (change.key == "contact") {
+            console.log(thing, 'changed state:', change);
+            if (!change.value) {
+                blynk.notify("Fire!");
+                terminal1.write("Fire!\n");
+            }
+        }
+    });
+}
+function connectLeakageSensorWithBlynk(leakageSensor: any) {
+    leakageSensor.on('stateChanged', (change, thing) => {
+        if (change.key == "contact") {
+            console.log(thing, 'changed state:', change);
+            if (!change.value) {
+                blynk.notify("Leakage!");
+                terminal1.write("Leakage!\n");
+            }
+        }
+    });
+}
 function connectTempHumSensorWithBlynk(sensor: any, blynkTemp: any, blynkHum: any) {
     sensor.on('temperatureChanged', temp => {
         console.log('Temp changed to:', temp.value);
@@ -200,6 +229,8 @@ const initEvents = async () => {
     connectRelayWithBlynkButton(plug, plugPin);
     connectMagnetWithBlynk(magnet);
     connectTempHumSensorWithBlynk(sensorHT, tempPin, humPin);
+    connectSmokeSensorWithBlynk(smokeSensor);
+    connectLeakageSensorWithBlynk(leakageSensor);
 }
 
 const initDebugEvents = async () => {
