@@ -101,8 +101,9 @@ const initGateway = async () => {
     sensorHT = gateway.child('miio:158d0001c2a921');
     magnet = gateway.child('miio:158d00022712f9');
     wallButtons = gateway.child('miio:158d0002458fc6');
-    wallButton1 = gateway.child('miio:158d0002458fc6:0');
-    wallButton2 = gateway.child('miio:158d0002458fc6:1');
+    const children = wallButtons.children();
+    wallButton1 = children.next().value;
+    wallButton2 = children.next().value;
     //smokeSensor = gateway.child('miio:158d0002458fc6');
     //leakageSensor = gateway.child('miio:158d0002458fc6');
 
@@ -119,7 +120,7 @@ const initGateway = async () => {
             console.log('Temperature:', temperature.celsius);
         }
         if (child.matches('cap:children')) {
-            const firstOutlet = child.getChild('1'); // depends on the implementation
+            //const firstOutlet = child.getChild('1'); // depends on the implementation
             //for (const grandchild of child.children) {
             //   // console.log('grandchild:', grandchild);
             //}
@@ -128,6 +129,7 @@ const initGateway = async () => {
             console.log('Current battery level:', await child.batteryLevel());
         }
     }
+
     console.log("Gateway ready!");
 }
 
@@ -232,7 +234,7 @@ function connectTempHumSensorWithBlynk(sensor: any, blynkTemp: any, blynkHum: an
 const initEvents = async () => {
     console.log("->initEvents");
 
-   // connectRelayWithBlynkButton(plug, plugPin);
+    connectRelayWithBlynkButton(wallButton1, plugPin);
     connectMagnetWithBlynk(magnet);
     connectTempHumSensorWithBlynk(sensorHT, tempPin, humPin);
     //connectSmokeSensorWithBlynk(smokeSensor);
@@ -246,42 +248,13 @@ const initDebugEvents = async () => {
         console.log('Action occurred:', action)
     );
 
-    if (wallButtons.matches('cap:children')) {
-        const children = wallButtons.children();
-        wallButton1 = children.next().value;
-        wallButton2 = children.next().value;
-        console.log(wallButton1);      //  for (let item of children) {
-        //    console.log(item);
-            // expected output: Array ["0", "foo"]
-            // expected output: Array [1, "bar"]
-       // }
-    }
-
-
-
-   // console.log(wallButton1);
-
-
-    // Get all children
-   // const children = wallButtons.children();
-   // console.log(children);
-
-   //   wallButton1 = wallButtons.child('undefined - 1');
-    //  wallButton2 = wallButtons.getChild('2');
-  //  console.log(wallButton1);
-
     wallButton1.on('action', action =>
         console.log('Action occurred:', action)
     );
 
-
     wallButton1.on('stateChanged', (change, thing) => {
-            console.log(thing, 'changed state:', change);
-
-        
+        console.log(thing, 'changed state:', change);
     });
-
-    wallButton1.turnOn();
 }
 
 const run = async () => {
