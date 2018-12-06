@@ -101,6 +101,8 @@ const initGateway = async () => {
     sensorHT = gateway.child('miio:158d0001c2a921');
     magnet = gateway.child('miio:158d00022712f9');
     wallButtons = gateway.child('miio:158d0002458fc6');
+    wallButton1 = gateway.child('miio:158d0002458fc6:0');
+    wallButton2 = gateway.child('miio:158d0002458fc6:1');
     //smokeSensor = gateway.child('miio:158d0002458fc6');
     //leakageSensor = gateway.child('miio:158d0002458fc6');
 
@@ -229,7 +231,7 @@ function connectTempHumSensorWithBlynk(sensor: any, blynkTemp: any, blynkHum: an
 const initEvents = async () => {
     console.log("->initEvents");
 
-    connectRelayWithBlynkButton(plug, plugPin);
+   // connectRelayWithBlynkButton(plug, plugPin);
     connectMagnetWithBlynk(magnet);
     connectTempHumSensorWithBlynk(sensorHT, tempPin, humPin);
     //connectSmokeSensorWithBlynk(smokeSensor);
@@ -237,17 +239,48 @@ const initEvents = async () => {
 }
 
 const initDebugEvents = async () => {
+    console.log("->initDebugEvents");
+
     button.on('action', action =>
         console.log('Action occurred:', action)
     );
 
+    if (wallButtons.matches('cap:children')) {
+        const children = wallButtons.children();
+        wallButton1 = children.next().value;
+        wallButton2 = children.next().value;
+        console.log(wallButton1);      //  for (let item of children) {
+        //    console.log(item);
+            // expected output: Array ["0", "foo"]
+            // expected output: Array [1, "bar"]
+       // }
+    }
 
-    //  wallButton1 = wallButtons.getChild('1');
+
+
+   // console.log(wallButton1);
+
+
+    // Get all children
+   // const children = wallButtons.children();
+   // console.log(children);
+
+   //   wallButton1 = wallButtons.child('undefined - 1');
     //  wallButton2 = wallButtons.getChild('2');
+  //  console.log(wallButton1);
 
-    //wallButton1.on('action', action =>
-    //    console.log('Action occurred:', action)
-    //);
+    wallButton1.on('action', action =>
+        console.log('Action occurred:', action)
+    );
+
+
+    wallButton1.on('stateChanged', (change, thing) => {
+            console.log(thing, 'changed state:', change);
+
+        
+    });
+
+    wallButton1.turnOn();
 }
 
 const run = async () => {
