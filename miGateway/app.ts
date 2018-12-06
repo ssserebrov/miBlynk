@@ -118,11 +118,12 @@ const initGateway = async () => {
             const temperature = await child.temperature();
             console.log('Temperature:', temperature.celsius);
         }
-        //if (child.matches('cap:children')) {
-        //    for (const grandchild of child.children) {
-        //        console.log('grandchild:', grandchild);
-        //    }
-        //}
+        if (child.matches('cap:children')) {
+            const firstOutlet = child.getChild('1'); // depends on the implementation
+            //for (const grandchild of child.children) {
+            //   // console.log('grandchild:', grandchild);
+            //}
+        }
         if (child.matches('cap:battery-level')) {
             console.log('Current battery level:', await child.batteryLevel());
         }
@@ -297,7 +298,36 @@ run().catch(err => {
     console.log("CATCH!");
 })
 
+function discover() {
+    const browser = miio.browse({
+        cacheTime: 300 // 5 minutes. Default is 1800 seconds (30 minutes)
+    });
 
+    const devices = {};
+    browser.on('available', reg => {
+        if (!reg.token) {
+            console.log(reg.id, 'hides its token');
+            return;
+        }
+
+        // Directly connect to the device anyways - so use miio.devices() if you just do this
+        reg.connect()
+            .then(device => {
+                devices[reg.id] = device;
+
+                // Do something useful with the device
+            })
+            .catch();
+    });
+
+    browser.on('unavailable', reg => {
+        const device = devices[reg.id];
+        if (!device) return;
+
+        device.destroy();
+        delete devices[reg.id];
+    })
+}
 //////////////////////*
 //MiioDevice {
 //    model = lumi.gateway.v3,
@@ -431,3 +461,5 @@ run().catch(err => {
 //        capabilities = children
 //}
 //    Gateway ready!*/
+//subdevices.js
+// 12 : require('./86sw2'), 14 : require('./86sw1'),
