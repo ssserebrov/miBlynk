@@ -134,7 +134,7 @@ const initGateway = async () => {
 }
 
 const initBlynk = async () => {
-    blynk = await new BlynkLib.Blynk('7bb7485f6eba41a0a36de66a90ed8ea1');
+    blynk = await new BlynkLib.Blynk('2c7fe8a09b2649828b51688e50713434');
     tempPin = await new blynk.VirtualPin(15);
     humPin = await new blynk.VirtualPin(16);
     plugPin = await new blynk.VirtualPin(20);
@@ -263,8 +263,8 @@ const run = async () => {
     //await testBlynk();
     await initEvents();
     await initDebugEvents();
-    logTempTask.start();
-    logTemp();
+    // logTempTask.start();
+    // logTemp();
     console.log("run->");
 }
 
@@ -278,11 +278,11 @@ const logTemp = async () => {
  
 }
 
-const cron = require('node-cron');
-var logTempTask = cron.schedule('*/1 * * * *', function () {
-    logTemp();
-});
-
+// const cron = require('node-cron');
+// var logTempTask = cron.schedule('*/1 * * * *', function () {
+//     logTemp();
+// });
+//
 
 
 run().catch(err => {

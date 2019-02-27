@@ -121,7 +121,7 @@ const initGateway = () => __awaiter(this, void 0, void 0, function* () {
     console.log("Gateway ready!");
 });
 const initBlynk = () => __awaiter(this, void 0, void 0, function* () {
-    blynk = yield new BlynkLib.Blynk('7bb7485f6eba41a0a36de66a90ed8ea1');
+    blynk = yield new BlynkLib.Blynk('2c7fe8a09b2649828b51688e50713434');
     tempPin = yield new blynk.VirtualPin(15);
     humPin = yield new blynk.VirtualPin(16);
     plugPin = yield new blynk.VirtualPin(20);
@@ -229,8 +229,8 @@ const run = () => __awaiter(this, void 0, void 0, function* () {
     //await testBlynk();
     yield initEvents();
     yield initDebugEvents();
-    logTempTask.start();
-    logTemp();
+    // logTempTask.start();
+    // logTemp();
     console.log("run->");
 });
 const logTemp = () => __awaiter(this, void 0, void 0, function* () {
@@ -239,10 +239,11 @@ const logTemp = () => __awaiter(this, void 0, void 0, function* () {
     console.log('Temperature:', t);
     tempPin.write(t);
 });
-const cron = require('node-cron');
-var logTempTask = cron.schedule('*/1 * * * *', function () {
-    logTemp();
-});
+// const cron = require('node-cron');
+// var logTempTask = cron.schedule('*/1 * * * *', function () {
+//     logTemp();
+// });
+//
 run().catch(err => {
     console.log(err);
     console.log("CATCH!");
