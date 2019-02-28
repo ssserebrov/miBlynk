@@ -1,74 +1,7 @@
-﻿const BlynkLib = require('blynk-library');
-const miio = require('miio');
-
-
-
-//class Rig extends events.EventEmitter {
-//    name: string;
-//    ip: string;
-//    port: number;
-//    tempLimit: number = 78;
-//    private _stat: Stat;
-
-//    private _temp: number;
-//    get temp(): number {
-//        return this._temp;
-//    }
-//    set temp(temp: number) {
-//        this._temp = temp;
-
-//        this.isCriticalTemp = (!this.isCriticalTemp && this._temp >= this.tempLimit) ||
-//            (this.isCriticalTemp && this._temp >= this.tempLimit - 8);
-//    }
-
-//    private _isCriticalTemp: boolean = false;
-//    get isCriticalTemp(): boolean {
-//        return this._isCriticalTemp;
-//    }
-//    set isCriticalTemp(isCriticalTemp: boolean) {
-//        if (isCriticalTemp == this._isCriticalTemp) {
-//            return;
-//        }
-
-//        this._isCriticalTemp = isCriticalTemp;
-//        this.emit('criticalTempStatusChanged')
-//    }
-
-//    private _isOnline: boolean = true;
-//    get isOnline(): boolean {
-//        return this._isOnline;
-//    }
-//    set isOnline(isOnline: boolean) {
-//        if (isOnline == this._isOnline) {
-//            return;
-//        }
-
-//        this._isOnline = isOnline;
-//        this.emit('onlineStatusChanged')
-//    }
-
-//    updateRigStatus(stat: Stat) {
-//        this._stat = stat;
-//        this.temp = Math.max.apply(null, stat.temps);
-//    }
-
-
-//    toString() {
-//        console.log(this.name);
-//        console.log(this._stat.hashRate);
-//        console.log(this._stat.temps);
-//        let msg: string = this.name + ": " + this._temp + ";";
-//        return msg;
-//    }
-
-//    constructor(name: string, ip: string, port: number) {
-//        super();
-//        this.name = name;
-//        this.ip = ip;
-//        this.port = port;
-//    }
-//}
-
+﻿const blynkLib = require("blynk-library");
+const miio = require("miio");
+const config = require('config');
+const request = require('request');
 
 // Gateway stuff
 let gateway: any;
@@ -92,8 +25,35 @@ let testPin: any;
 let magnetPin: any;
 let terminal1: any;
 
+class SmsNotifier {
+    name: string;
+    token: string;
+
+    init(name: string, token: string): void {
+        this.name = name;
+        this.token = token;
+    }
+
+    sendMessage(message: string, user: string): void {
+        if (message === undefined) {
+            return;
+        }
+        message = message.replace("+", "%2B");
+        let url: string = `http://sms.ru/sms/send?api_id=${this.token}&to=${user}&text=${message}`;
+
+        request(url, {json: true}, (err, res, body) => {
+            if (err) {
+                return console.log(err);
+            }
+        });
+    }
+}
+
+let smsNotifier: SmsNotifier = new SmsNotifier();
+smsNotifier.init("sms", config.get('smsKey'));
+
 const initGateway = async () => {
-    gateway = await miio.device({ address: '192.168.1.70' })
+    gateway = await miio.device({address: '192.168.1.70'});
     console.log(gateway);
 
     plug = gateway.child('miio:158d00020f23d5');
@@ -134,7 +94,7 @@ const initGateway = async () => {
 }
 
 const initBlynk = async () => {
-    blynk = await new BlynkLib.Blynk('2c7fe8a09b2649828b51688e50713434');
+    blynk = await new blynkLib.Blynk(config.get('blynkKey'));
     tempPin = await new blynk.VirtualPin(15);
     humPin = await new blynk.VirtualPin(16);
     plugPin = await new blynk.VirtualPin(20);
@@ -157,8 +117,7 @@ const testBlynk = async () => {
     testPin.write(1);
 }
 
-function connectRelayWithBlynkButton(relay: any, blynkButton: any)
-{
+function connectRelayWithBlynkButton(relay: any, blynkButton: any) {
     relay.on('stateChanged', (change, thing) => {
         let onLabel: string = "ON";
         let offLabel: string = "OFF";
@@ -169,8 +128,7 @@ function connectRelayWithBlynkButton(relay: any, blynkButton: any)
                 blynk.setProperty(blynkButton.pin, "onLabel", waitLabel);
                 blynk.setProperty(blynkButton.pin, "offLabel", offLabel);
                 blynkButton.write(0);
-            }
-            else {
+            } else {
                 blynk.setProperty(blynkButton.pin, "onLabel", onLabel);
                 blynk.setProperty(blynkButton.pin, "offLabel", waitLabel);
                 blynkButton.write(1);
@@ -197,6 +155,7 @@ function connectMagnetWithBlynk(magnet: any) {
         }
     });
 }
+
 function connectSmokeSensorWithBlynk(smokeSensor: any) {
     smokeSensor.on('stateChanged', (change, thing) => {
         if (change.key == "contact") {
@@ -208,6 +167,7 @@ function connectSmokeSensorWithBlynk(smokeSensor: any) {
         }
     });
 }
+
 function connectLeakageSensorWithBlynk(leakageSensor: any) {
     leakageSensor.on('stateChanged', (change, thing) => {
         if (change.key == "contact") {
@@ -219,6 +179,7 @@ function connectLeakageSensorWithBlynk(leakageSensor: any) {
         }
     });
 }
+
 function connectTempHumSensorWithBlynk(sensor: any, blynkTemp: any, blynkHum: any) {
     sensor.on('temperatureChanged', temp => {
         console.log('Temp changed to:', temp.value);
@@ -275,7 +236,7 @@ const logTemp = async () => {
     console.log('Temperature:', t);
 
     tempPin.write(t);
- 
+
 }
 
 // const cron = require('node-cron');

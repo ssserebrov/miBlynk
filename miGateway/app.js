@@ -6,63 +6,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-const BlynkLib = require('blynk-library');
-const miio = require('miio');
-//class Rig extends events.EventEmitter {
-//    name: string;
-//    ip: string;
-//    port: number;
-//    tempLimit: number = 78;
-//    private _stat: Stat;
-//    private _temp: number;
-//    get temp(): number {
-//        return this._temp;
-//    }
-//    set temp(temp: number) {
-//        this._temp = temp;
-//        this.isCriticalTemp = (!this.isCriticalTemp && this._temp >= this.tempLimit) ||
-//            (this.isCriticalTemp && this._temp >= this.tempLimit - 8);
-//    }
-//    private _isCriticalTemp: boolean = false;
-//    get isCriticalTemp(): boolean {
-//        return this._isCriticalTemp;
-//    }
-//    set isCriticalTemp(isCriticalTemp: boolean) {
-//        if (isCriticalTemp == this._isCriticalTemp) {
-//            return;
-//        }
-//        this._isCriticalTemp = isCriticalTemp;
-//        this.emit('criticalTempStatusChanged')
-//    }
-//    private _isOnline: boolean = true;
-//    get isOnline(): boolean {
-//        return this._isOnline;
-//    }
-//    set isOnline(isOnline: boolean) {
-//        if (isOnline == this._isOnline) {
-//            return;
-//        }
-//        this._isOnline = isOnline;
-//        this.emit('onlineStatusChanged')
-//    }
-//    updateRigStatus(stat: Stat) {
-//        this._stat = stat;
-//        this.temp = Math.max.apply(null, stat.temps);
-//    }
-//    toString() {
-//        console.log(this.name);
-//        console.log(this._stat.hashRate);
-//        console.log(this._stat.temps);
-//        let msg: string = this.name + ": " + this._temp + ";";
-//        return msg;
-//    }
-//    constructor(name: string, ip: string, port: number) {
-//        super();
-//        this.name = name;
-//        this.ip = ip;
-//        this.port = port;
-//    }
-//}
+const blynkLib = require("blynk-library");
+const miio = require("miio");
+const config = require('config');
+const request = require('request');
 // Gateway stuff
 let gateway;
 let plug;
@@ -83,6 +30,26 @@ let humPin;
 let testPin;
 let magnetPin;
 let terminal1;
+class SmsNotifier {
+    init(name, token) {
+        this.name = name;
+        this.token = token;
+    }
+    sendMessage(message, user) {
+        if (message === undefined) {
+            return;
+        }
+        message = message.replace("+", "%2B");
+        let url = `http://sms.ru/sms/send?api_id=${this.token}&to=${user}&text=${message}`;
+        request(url, { json: true }, (err, res, body) => {
+            if (err) {
+                return console.log(err);
+            }
+        });
+    }
+}
+let smsNotifier = new SmsNotifier();
+smsNotifier.init("sms", config.get('smsKey'));
 const initGateway = () => __awaiter(this, void 0, void 0, function* () {
     gateway = yield miio.device({ address: '192.168.1.70' });
     console.log(gateway);
@@ -121,7 +88,7 @@ const initGateway = () => __awaiter(this, void 0, void 0, function* () {
     console.log("Gateway ready!");
 });
 const initBlynk = () => __awaiter(this, void 0, void 0, function* () {
-    blynk = yield new BlynkLib.Blynk('2c7fe8a09b2649828b51688e50713434');
+    blynk = yield new blynkLib.Blynk(config.get('blynkKey'));
     tempPin = yield new blynk.VirtualPin(15);
     humPin = yield new blynk.VirtualPin(16);
     plugPin = yield new blynk.VirtualPin(20);
