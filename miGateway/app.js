@@ -23,8 +23,10 @@ let smokeSensor;
 let leakageSensor;
 // Blynk stuff
 let blynk;
-let plugPin;
-let plugLed;
+let plugRelayPin;
+let plugRelayStatusPin;
+let wallSwitch1RelayPin;
+let plugRelayStatus;
 let tempPin;
 let humPin;
 let testPin;
@@ -87,14 +89,28 @@ const initGateway = () => __awaiter(this, void 0, void 0, function* () {
     }
     console.log("Gateway ready!");
 });
+// blynk virtual pins mapping:
+// sensors:
+// 01 - temperature
+// 02 - humidity
+// executive devices:
+// 10 - plug #1
+// 11 - wall switch #1
+// 12 - wall switch #2
+// executive devices statuses:
+// 20 - plug #1
+// 21 - wall switch #1 status
+// 22 - wall switch #2 status
+// others:
+// 30 - terminal
 const initBlynk = () => __awaiter(this, void 0, void 0, function* () {
     blynk = yield new blynkLib.Blynk(config.get('blynkKey'));
-    tempPin = yield new blynk.VirtualPin(15);
-    humPin = yield new blynk.VirtualPin(16);
-    plugPin = yield new blynk.VirtualPin(20);
-    plugLed = yield new blynk.VirtualPin(21);
+    tempPin = yield new blynk.VirtualPin(1);
+    humPin = yield new blynk.VirtualPin(2);
+    plugRelayPin = yield new blynk.VirtualPin(10);
+    plugRelayStatusPin = yield new blynk.VirtualPin(20);
     testPin = yield new blynk.VirtualPin(17);
-    terminal1 = yield new blynk.WidgetTerminal(10);
+    terminal1 = yield new blynk.WidgetTerminal(30);
     blynk.on('connect', function () {
         console.log("Blynk ready!");
     });
@@ -106,7 +122,7 @@ const testBlynk = () => __awaiter(this, void 0, void 0, function* () {
     console.log("testBlynk");
     testPin.write(1);
 });
-function connectRelayWithBlynkButton(relay, blynkButton) {
+function connectRelayWithBlynkButton(relay, blynkButton, blynkLed) {
     relay.on('stateChanged', (change, thing) => {
         let onLabel = "ON";
         let offLabel = "OFF";
@@ -116,11 +132,13 @@ function connectRelayWithBlynkButton(relay, blynkButton) {
                 blynk.setProperty(blynkButton.pin, "onLabel", waitLabel);
                 blynk.setProperty(blynkButton.pin, "offLabel", offLabel);
                 blynkButton.write(0);
+                blynkLed.write(0);
             }
             else {
                 blynk.setProperty(blynkButton.pin, "onLabel", onLabel);
                 blynk.setProperty(blynkButton.pin, "offLabel", waitLabel);
                 blynkButton.write(1);
+                blynkLed.write(1);
             }
         }
     });
@@ -176,7 +194,7 @@ function connectTempHumSensorWithBlynk(sensor, blynkTemp, blynkHum) {
 }
 const initEvents = () => __awaiter(this, void 0, void 0, function* () {
     console.log("->initEvents");
-    connectRelayWithBlynkButton(wallButton1, plugPin);
+    connectRelayWithBlynkButton(plug, plugRelayPin, plugRelayStatusPin);
     connectMagnetWithBlynk(magnet);
     connectTempHumSensorWithBlynk(sensorHT, tempPin, humPin);
     //connectSmokeSensorWithBlynk(smokeSensor);
