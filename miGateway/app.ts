@@ -13,7 +13,9 @@ let wallButtons: any;
 let wallButton1: any;
 let wallButton2: any;
 let smokeSensor: any;
-let leakageSensor: any;
+let leakageSensor1: any;
+let leakageSensor2: any;
+let leakageSensor3: any;
 
 // Blynk stuff
 let blynk: any;
@@ -23,6 +25,8 @@ let wallSwitch1RelayPin: any;
 let plugRelayStatus: any;
 let tempPin: any;
 let humPin: any;
+let bridgeTempPin: any;
+let bridgeHumPin: any;
 let testPin: any;
 let magnetPin: any;
 let terminal1: any;
@@ -100,6 +104,8 @@ const initGateway = async () => {
 // sensors:
 // 01 - temperature
 // 02 - humidity
+// 05 - bridge temperature
+// 06 - bridge humidity
 // executive devices:
 // 10 - plug #1
 // 11 - wall switch #1
@@ -115,6 +121,8 @@ const initBlynk = async () => {
     blynk = await new blynkLib.Blynk(config.get('blynkKey'));
     tempPin = await new blynk.VirtualPin(1);
     humPin = await new blynk.VirtualPin(2);
+    bridgeTempPin = await new blynk.VirtualPin(5);
+    bridgeHumPin = await new blynk.VirtualPin(6);
     plugRelayPin = await new blynk.VirtualPin(10);
     plugRelayStatusPin = await new blynk.VirtualPin(20);
     testPin = await new blynk.VirtualPin(17);
@@ -135,7 +143,7 @@ const testBlynk = async () => {
     testPin.write(1);
 }
 
-function connectRelayWithBlynkButton(relay: any, blynkButton: any, blynkLed: any) {
+function connectXiaomiRelayWithBlynkButtonAndLed(relay: any, button: any, led: any) {
     relay.on('stateChanged', (change, thing) => {
         let onLabel: string = "ON";
         let offLabel: string = "OFF";
@@ -143,20 +151,20 @@ function connectRelayWithBlynkButton(relay: any, blynkButton: any, blynkLed: any
 
         if (change.key == "power") {
             if (!change.value) {
-                blynk.setProperty(blynkButton.pin, "onLabel", waitLabel);
-                blynk.setProperty(blynkButton.pin, "offLabel", offLabel);
-                blynkButton.write(0);
-                blynkLed.write(0);
+                blynk.setProperty(button.pin, "onLabel", waitLabel);
+                blynk.setProperty(button.pin, "offLabel", offLabel);
+                button.write(0);
+                led.write(0);
             } else {
-                blynk.setProperty(blynkButton.pin, "onLabel", onLabel);
-                blynk.setProperty(blynkButton.pin, "offLabel", waitLabel);
-                blynkButton.write(1);
-                blynkLed.write(1);
+                blynk.setProperty(button.pin, "onLabel", onLabel);
+                blynk.setProperty(button.pin, "offLabel", waitLabel);
+                button.write(1);
+                led.write(1);
             }
         }
     });
 
-    blynkButton.on('write', function (param) {
+    button.on('write', function (param) {
         if (param == 0)
             relay.turnOff();
         if (param == 1)
@@ -212,12 +220,23 @@ function connectTempHumSensorWithBlynk(sensor: any, blynkTemp: any, blynkHum: an
     });
 }
 
+function initBridge() {
+    bridgeTempPin.on('write', function (param) {
+        bridgeTempPin.write(param);
+    });
+    bridgeHumPin.on('write', function (param) {
+        bridgeHumPin.write(param);
+    });
+}
+
 const initEvents = async () => {
     console.log("->initEvents");
 
-    connectRelayWithBlynkButton(plug, plugRelayPin, plugRelayStatusPin);
+    connectXiaomiRelayWithBlynkButtonAndLed(plug, plugRelayPin, plugRelayStatusPin);
     connectMagnetWithBlynk(magnet);
     connectTempHumSensorWithBlynk(sensorHT, tempPin, humPin);
+
+    initBridge();
     //connectSmokeSensorWithBlynk(smokeSensor);
     //connectLeakageSensorWithBlynk(leakageSensor);
 }
