@@ -16,6 +16,7 @@ let smokeSensor: any;
 let leakageSensor1: any;
 let leakageSensor2: any;
 let leakageSensor3: any;
+let isArmed: boolean = false;
 
 // Blynk stuff
 let blynk: any;
@@ -29,6 +30,7 @@ let bridgeTempPin: any;
 let bridgeHumPin: any;
 let testPin: any;
 let magnetPin: any;
+let armingPin: any;
 let terminal1: any;
 
 class SmsNotifier {
@@ -49,8 +51,12 @@ class SmsNotifier {
 
         request(url, {json: true}, (err, res, body) => {
             if (err) {
+                logToBlynkTerminal("[SY]", "Sms error")
                 return console.log(err);
+            } else {
+                logToBlynkTerminal("[SY]", "Sms sent")
             }
+
         });
     }
 }
@@ -92,12 +98,14 @@ const initGateway = async () => {
             //}
         }
         if (child.matches('cap:battery-level')) {
-            console.log('Current battery level:', await child.batteryLevel());
+            const battery = await child.batteryLevel();
+            console.log('Current battery level:', battery);
+            logMiToBlynk(battery);
         }
     }
 
     console.log("Gateway ready!");
-}
+};
 
 
 // blynk virtual pins mapping:
@@ -116,6 +124,7 @@ const initGateway = async () => {
 // 22 - wall switch #2 status
 // others:
 // 30 - terminal
+// 31 - gateway arming
 
 const initBlynk = async () => {
     blynk = await new blynkLib.Blynk(config.get('blynkKey'));
@@ -127,21 +136,26 @@ const initBlynk = async () => {
     plugRelayStatusPin = await new blynk.VirtualPin(20);
     testPin = await new blynk.VirtualPin(17);
     terminal1 = await new blynk.WidgetTerminal(30);
+    armingPin = await new blynk.VirtualPin(31);
 
     blynk.on('connect', function () {
-        console.log("Blynk ready!");
+        console.log("BL: Ready!");
+        logBlynkToBlynk("Ready!");
+        blynk.syncVirtual(31)
     });
 
     blynk.on('error', (err) => {
         console.error('whoops! there was an error');
     });
-}
+
+
+};
 
 const testBlynk = async () => {
     console.log("testBlynk");
 
     testPin.write(1);
-}
+};
 
 function connectXiaomiRelayWithBlynkButtonAndLed(relay: any, button: any, led: any) {
     relay.on('stateChanged', (change, thing) => {
@@ -155,20 +169,26 @@ function connectXiaomiRelayWithBlynkButtonAndLed(relay: any, button: any, led: a
                 blynk.setProperty(button.pin, "offLabel", offLabel);
                 button.write(0);
                 led.write(0);
+                logMiToBlynk("Relay turned off");
             } else {
                 blynk.setProperty(button.pin, "onLabel", onLabel);
                 blynk.setProperty(button.pin, "offLabel", waitLabel);
                 button.write(1);
                 led.write(1);
+                logMiToBlynk("Relay turned on");
             }
         }
     });
 
     button.on('write', function (param) {
-        if (param == 0)
+        if (param == 0) {
+            logBlynkToBlynk("Turn relay off");
             relay.turnOff();
-        if (param == 1)
+        }
+        if (param == 1) {
+            logBlynkToBlynk("Turn relay on");
             relay.turnOn();
+        }
     });
 }
 
@@ -177,8 +197,11 @@ function connectMagnetWithBlynk(magnet: any) {
         if (change.key == "contact") {
             console.log(thing, 'changed state:', change);
             if (!change.value) {
-                blynk.notify("Door open!");
-                terminal1.write("Door open!\n");
+                logMiToBlynkPush("Door opened");
+                logMiToBlynk("Door opened");
+                if (isArmed) {
+                    smsNotifier.sendMessage("XM: Door opened", "79829112723")
+                }
             }
         }
     });
@@ -190,7 +213,7 @@ function connectSmokeSensorWithBlynk(smokeSensor: any) {
             console.log(thing, 'changed state:', change);
             if (!change.value) {
                 blynk.notify("Fire!");
-                terminal1.write("Fire!\n");
+                logMiToBlynk("Fire!");
             }
         }
     });
@@ -202,7 +225,7 @@ function connectLeakageSensorWithBlynk(leakageSensor: any) {
             console.log(thing, 'changed state:', change);
             if (!change.value) {
                 blynk.notify("Leakage!");
-                terminal1.write("Leakage!\n");
+                logMiToBlynk("Leakage!");
             }
         }
     });
@@ -236,10 +259,23 @@ const initEvents = async () => {
     connectMagnetWithBlynk(magnet);
     connectTempHumSensorWithBlynk(sensorHT, tempPin, humPin);
 
+
+    armingPin.on('write', function (param) {
+        if (param == 0) {
+            logBlynkToBlynk("Disarmed");
+            isArmed = false;
+        }
+        if (param == 1) {
+            logBlynkToBlynk("Armed");
+            isArmed = true;
+        }
+    });
+
+
     initBridge();
     //connectSmokeSensorWithBlynk(smokeSensor);
     //connectLeakageSensorWithBlynk(leakageSensor);
-}
+};
 
 const initDebugEvents = async () => {
     console.log("->initDebugEvents");
@@ -255,18 +291,18 @@ const initDebugEvents = async () => {
     wallButton1.on('stateChanged', (change, thing) => {
         console.log(thing, 'changed state:', change);
     });
-}
+};
 
 const run = async () => {
-    await initGateway();
     await initBlynk();
+    await initGateway();
     //await testBlynk();
     await initEvents();
     await initDebugEvents();
     // logTempTask.start();
     // logTemp();
     console.log("run->");
-}
+};
 
 const logTemp = async () => {
     const temperature = await sensorHT.temperature();
@@ -276,7 +312,7 @@ const logTemp = async () => {
 
     tempPin.write(t);
 
-}
+};
 
 // const cron = require('node-cron');
 // var logTempTask = cron.schedule('*/1 * * * *', function () {
@@ -288,7 +324,7 @@ const logTemp = async () => {
 run().catch(err => {
     console.log(err);
     console.log("CATCH!");
-})
+});
 
 function discover() {
     const browser = miio.browse({
@@ -319,4 +355,30 @@ function discover() {
         device.destroy();
         delete devices[reg.id];
     })
+}
+
+function logBlynkToBlynk(message: string) {
+    logToBlynkTerminal("[BL]", message)
+}
+
+function logMiToBlynk(message: string) {
+    logToBlynkTerminal("[MI]", message)
+}
+
+function logToBlynkTerminal(sender: string, message: string) {
+    const now = new Date();
+
+    let options = {year: '2-digit', month: '2-digit', day: '2-digit'};
+    let datestamp = now.toLocaleString('ru-RU', options);
+
+    let options2 = {hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false};
+    let timestamp = now.toLocaleString('ru-RU', options2);
+
+    let logMessage = `${timestamp} ${datestamp} ${sender}: ${message}\n`;
+
+    terminal1.write(logMessage);
+}
+
+function logMiToBlynkPush(message: string) {
+    blynk.notify(`[MI]: ${message}`);
 }
